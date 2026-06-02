@@ -2,6 +2,8 @@
 
 A minimal, single-file HTML viewer for Claude AI conversation exports.
 
+![Screenshot](Screen%20Shot%202026-06-02.png)
+
 ## Usage
 
 Open `index.html` in a browser and upload a conversation JSON file. The viewer renders the conversation with:
