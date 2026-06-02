@@ -1,0 +1,272 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Conversation Export",
+  "description": "Schema for exported Claude AI conversation data",
+  "type": "object",
+  "required": [
+    "uuid",
+    "name",
+    "model",
+    "created_at",
+    "updated_at",
+    "is_starred",
+    "is_temporary",
+    "platform",
+    "chat_messages"
+  ],
+  "properties": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the conversation"
+    },
+    "name": {
+      "type": "string",
+      "description": "Title of the conversation"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI-generated summary of the conversation"
+    },
+    "model": {
+      "type": "string",
+      "description": "Claude model used for the conversation"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when conversation was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when conversation was last updated"
+    },
+    "settings": {
+      "type": "object",
+      "description": "Conversation settings and feature flags",
+      "properties": {
+        "enabled_bananagrams": {
+          "type": "boolean"
+        },
+        "enabled_web_search": {
+          "type": "boolean"
+        },
+        "paprika_mode": {
+          "type": "string"
+        },
+        "enabled_monkeys_in_a_barrel": {
+          "type": "boolean"
+        },
+        "enabled_saffron": {
+          "type": "boolean"
+        },
+        "tool_search_mode": {
+          "type": "string"
+        },
+        "preview_feature_uses_artifacts": {
+          "type": "boolean"
+        },
+        "enabled_artifacts_attachments": {
+          "type": "boolean"
+        },
+        "enabled_turmeric": {
+          "type": "boolean"
+        },
+        "thinking_mode": {
+          "type": "string"
+        },
+        "effort_level": {
+          "type": "string"
+        }
+      }
+    },
+    "is_starred": {
+      "type": "boolean",
+      "description": "Whether the conversation is starred"
+    },
+    "is_temporary": {
+      "type": "boolean",
+      "description": "Whether the conversation is temporary"
+    },
+    "project_uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the associated project"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Platform where conversation took place"
+    },
+    "current_leaf_message_uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the current leaf message in the conversation tree"
+    },
+    "chat_messages": {
+      "type": "array",
+      "description": "Array of messages in the conversation",
+      "items": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "text",
+          "content",
+          "sender",
+          "index",
+          "created_at",
+          "updated_at",
+          "truncated",
+          "parent_message_uuid"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the message"
+          },
+          "text": {
+            "type": "string",
+            "description": "Legacy field, typically empty — actual content is in the content array"
+          },
+          "content": {
+            "type": "array",
+            "description": "Array of content blocks",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "description": "Text content block",
+                  "required": ["type", "text", "citations"],
+                  "properties": {
+                    "start_timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "stop_timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["text"]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "citations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "description": "Extended thinking content block",
+                  "required": ["type", "thinking", "summaries", "cut_off", "truncated"],
+                  "properties": {
+                    "start_timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "stop_timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["thinking"]
+                    },
+                    "thinking": {
+                      "type": "string"
+                    },
+                    "summaries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["summary"],
+                        "properties": {
+                          "summary": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "cut_off": {
+                      "type": "boolean",
+                      "description": "Whether thinking was cut off before completion"
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "Whether the thinking content was truncated"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "sender": {
+            "type": "string",
+            "enum": ["human", "assistant"],
+            "description": "Who sent the message"
+          },
+          "index": {
+            "type": "integer",
+            "description": "Sequential index of the message in the conversation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "input_mode": {
+            "type": "string",
+            "description": "Input mode used by the human sender (e.g. text)"
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Whether the message was truncated"
+          },
+          "stop_reason": {
+            "type": "string",
+            "enum": ["stop_sequence", "end_turn"],
+            "description": "Reason why assistant message generation stopped"
+          },
+          "attachments": {
+            "type": "array",
+            "description": "File attachments",
+            "items": {
+              "type": "object"
+            }
+          },
+          "files": {
+            "type": "array",
+            "description": "Associated files",
+            "items": {
+              "type": "object"
+            }
+          },
+          "sync_sources": {
+            "type": "array",
+            "description": "Synchronized data sources",
+            "items": {
+              "type": "object"
+            }
+          },
+          "parent_message_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the parent message in the conversation tree"
+          }
+        }
+      }
+    }
+  }
+}

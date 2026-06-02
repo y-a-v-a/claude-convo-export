@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversation Viewer</title>
+<style>
+  :root {
+    --bg: #fff;
+    --fg: #111;
+    --muted: #666;
+    --human-bg: #f4f4f0;
+    --assistant-bg: #fff;
+    --border: #ccc;
+    --upload-bg: #fafafa;
+    --letter-spacing: 0.01em;
+    --human-label: #8b5e3c;
+    --assistant-label: #3c6e8b;
+  }
+
+  html[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --fg: #ddd;
+    --muted: #888;
+    --human-bg: #242420;
+    --assistant-bg: #1a1a1a;
+    --border: #333;
+    --upload-bg: #222;
+    --human-label: #c9a87c;
+    --assistant-label: #7cb3c9;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.7;
+    font-size: 18px;
+    text-rendering: geometricPrecision;
+    letter-spacing: var(--letter-spacing);
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5em 2em;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  header h1 {
+    font-size: 1.2em;
+    font-weight: 600;
+  }
+
+  header .meta {
+    font-size: 1em;
+    color: var(--muted);
+  }
+
+  #theme-toggle,
+  #thinking-toggle-all,
+  #summary-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 1em;
+    padding: 0.3em 0.8em;
+    cursor: pointer;
+  }
+
+  #upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 2em;
+  }
+
+  #upload-area label {
+    display: block;
+    border: 1px dashed var(--border);
+    padding: 3em 4em;
+    text-align: center;
+    cursor: pointer;
+    background: var(--upload-bg);
+    font-size: 1em;
+    color: var(--muted);
+  }
+
+  #upload-area input {
+    display: none;
+  }
+
+  #conversation {
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 0 2em 4em;
+  }
+
+  .message {
+    border-bottom: 1px solid var(--border);
+    padding: 2em 0;
+  }
+
+  .message.human {
+    background: var(--human-bg);
+    margin: 0 -2em;
+    padding: 2em;
+  }
+
+  .message .sender {
+    font-size: 1em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .message.human .sender {
+    color: var(--human-label);
+  }
+
+  .message.assistant .sender {
+    color: var(--assistant-label);
+    margin-bottom: 0.2em;
+  }
+
+  .message .date {
+    font-size: 1em;
+    color: var(--muted);
+    margin-bottom: 1em;
+  }
+
+  .message .body p {
+    margin-bottom: 0.9em;
+    text-wrap: pretty;
+  }
+
+  .message .body strong {
+    font-weight: 700;
+  }
+
+  .message .body em {
+    font-style: italic;
+  }
+
+  .message .body ul,
+  .message .body ol {
+    margin: 0.5em 0 0.9em 1.5em;
+  }
+
+  .message .body li {
+    margin-bottom: 0.3em;
+  }
+
+  .message .body code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 1em;
+  }
+
+  .thinking-toggle {
+    font-size: 1em;
+    color: var(--muted);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: none;
+    font-family: inherit;
+    padding: 0.2em 0.6em;
+    margin-bottom: 1em;
+  }
+
+  .summary-content {
+    display: none;
+    border-bottom: 1px solid var(--border);
+    padding: 2em 0;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .summary-content.open {
+    display: block;
+  }
+
+  .summary-content p {
+    margin-bottom: 0.9em;
+  }
+
+  .thinking-content {
+    display: none;
+    font-size: 1em;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--border);
+    padding: 0.8em 1em;
+    margin-bottom: 1em;
+  }
+
+  .thinking-content.open {
+    display: block;
+  }
+  @media print {
+    #theme-toggle,
+    #thinking-toggle-all,
+    .thinking-toggle {
+      display: none;
+    }
+
+    .thinking-content {
+      display: block;
+    }
+
+    #upload-area {
+      display: none;
+    }
+
+    #summary-toggle {
+      display: none;
+    }
+
+    .summary-content {
+      display: block;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 id="title">Conversation Viewer</h1>
+    <span class="meta" id="header-meta"></span>
+  </div>
+  <div>
+    <button id="summary-toggle" style="display:none">Show summary</button>
+    <button id="thinking-toggle-all" style="display:none">Show all thinking</button>
+    <button id="theme-toggle">Dark</button>
+  </div>
+</header>
+
+<div id="upload-area">
+  <label>
+    Drop a conversation JSON file here, or click to select
+    <input type="file" id="file-input" accept=".json">
+  </label>
+</div>
+
+<div id="conversation"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+
+// Theme
+
+const toggle = $("#theme-toggle");
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+function setTheme(dark) {
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  toggle.textContent = dark ? "Light" : "Dark";
+}
+
+setTheme(prefersDark);
+
+toggle.addEventListener("click", () => {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  setTheme(!isDark);
+});
+
+const thinkingToggleAll = $("#thinking-toggle-all");
+let allThinkingOpen = false;
+
+thinkingToggleAll.addEventListener("click", () => {
+  allThinkingOpen = !allThinkingOpen;
+  document.querySelectorAll(".thinking-content").forEach(el => {
+    el.classList.toggle("open", allThinkingOpen);
+  });
+  document.querySelectorAll(".thinking-toggle").forEach(btn => {
+    btn.textContent = allThinkingOpen ? "Hide thinking" : "Show thinking";
+  });
+  thinkingToggleAll.textContent = allThinkingOpen ? "Hide all thinking" : "Show all thinking";
+});
+
+// Upload
+
+$("#file-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      render(data);
+    } catch (err) {
+      alert("Could not parse JSON: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+// Minimal markdown to HTML (handles the formatting in the conversation)
+
+function md(text) {
+  if (!text) return "";
+
+  // Escape HTML
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+  // Italic (single *)
+  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Split into blocks by double newline
+  const blocks = html.split(/\n{2,}/);
+  const out = [];
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+
+    // Unordered list
+    if (/^[-•]/.test(trimmed) && trimmed.split("\n").every(l => /^[-•]\s/.test(l.trim()) || !l.trim())) {
+      const items = trimmed.split("\n")
+        .map(l => l.replace(/^[-•]\s*/, "").trim())
+        .filter(Boolean);
+      out.push("<ul>" + items.map(i => "<li>" + i + "</li>").join("") + "</ul>");
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+[.)]\s/.test(trimmed)) {
+      const lines = trimmed.split("\n");
+      const isAllList = lines.every(l => /^\d+[.)]\s/.test(l.trim()) || !l.trim());
+      if (isAllList) {
+        const items = lines
+          .map(l => l.replace(/^\d+[.)]\s*/, "").trim())
+          .filter(Boolean);
+        out.push("<ol>" + items.map(i => "<li>" + i + "</li>").join("") + "</ol>");
+        continue;
+      }
+    }
+
+    // Regular paragraph — convert single newlines to <br>
+    out.push("<p>" + trimmed.replace(/\n/g, "<br>") + "</p>");
+  }
+
+  return out.join("\n");
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function render(data) {
+  $("#upload-area").style.display = "none";
+  $("#thinking-toggle-all").style.display = "";
+
+  $("#title").textContent = data.name || "Conversation";
+  $("#header-meta").textContent = [data.model, data.uuid].filter(Boolean).join(" · ");
+
+  const container = $("#conversation");
+  container.innerHTML = "";
+
+  const summaryBlock = document.createElement("div");
+  summaryBlock.id = "summary-block";
+  summaryBlock.className = "summary-content";
+  container.appendChild(summaryBlock);
+
+  const summaryToggle = $("#summary-toggle");
+  if (data.summary) {
+    summaryToggle.style.display = "";
+    summaryBlock.innerHTML = md(data.summary);
+    summaryToggle.addEventListener("click", () => {
+      const open = summaryBlock.classList.toggle("open");
+      summaryToggle.textContent = open ? "Hide summary" : "Show summary";
+    });
+  } else {
+    summaryBlock.style.display = "none";
+  }
+
+  for (const msg of data.chat_messages) {
+    const el = document.createElement("div");
+    el.className = "message " + msg.sender;
+
+    const sender = document.createElement("div");
+    sender.className = "sender";
+    sender.textContent = msg.sender;
+    el.appendChild(sender);
+
+    const date = document.createElement("div");
+    date.className = "date";
+    date.textContent = formatDate(msg.created_at);
+    el.appendChild(date);
+
+    for (const block of msg.content) {
+      if (block.type === "thinking") {
+        const btn = document.createElement("button");
+        btn.className = "thinking-toggle";
+        btn.textContent = "Show thinking";
+        const content = document.createElement("div");
+        content.className = "thinking-content";
+        content.innerHTML = md(block.thinking);
+        btn.addEventListener("click", () => {
+          const open = content.classList.toggle("open");
+          btn.textContent = open ? "Hide thinking" : "Show thinking";
+        });
+        el.appendChild(btn);
+        el.appendChild(content);
+      } else if (block.type === "text" && block.text) {
+        const body = document.createElement("div");
+        body.className = "body";
+        body.innerHTML = md(block.text);
+        el.appendChild(body);
+      }
+    }
+
+    container.appendChild(el);
+  }
+}
+</script>
+</body>
+</html>
